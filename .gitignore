@@ -1,0 +1,12 @@
+models/*.pkl
+models/*.json
+outputs/
+logs/
+data/_merged_temp.csv
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,69 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────
+# Immune Disease Risk Detection — Docker Compose
+#
+# Usage:
+#   docker compose up gui          → launch desktop GUI
+#   docker compose up train        → train models only (no GUI)
+#   docker compose run ingest      → ingest a PDF from command line
+#   docker compose up              → defaults to GUI
+# ──────────────────────────────────────────────────────────────
+
+services:
+
+  # ── GUI (default) ──────────────────────────────────────────
+  gui:
+    build: .
+    image: immune-risk-detection:latest
+    container_name: immune_risk_gui
+    command: python gui.py
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Persist data, models, outputs, logs across restarts
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      - ./sample_pdfs:/app/sample_pdfs
+      # X11 socket for GUI display on Linux
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # ── Train only (headless, no display needed) ───────────────
+  train:
+    build: .
+    image: immune-risk-detection:latest
+    container_name: immune_risk_train
+    command: python ml_model.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+    profiles: ["train"]
+
+  # ── PDF ingestion (headless) ───────────────────────────────
+  ingest:
+    build: .
+    image: immune-risk-detection:latest
+    container_name: immune_risk_ingest
+    # Override at runtime:
+    # docker compose run ingest python pdf_ingestion.py sample_pdfs/report.pdf
+    command: python pdf_ingestion.py sample_pdfs/ --folder
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      - ./sample_pdfs:/app/sample_pdfs
+    profiles: ["ingest"]
